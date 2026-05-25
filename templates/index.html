@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campus Placement Predictor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --primary: #4f46e5;
+    --primary-light: #818cf8;
+    --primary-dark: #3730a3;
+    --success: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(79,70,229,0.06);
+    --radius: 16px;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 60%, var(--primary-light) 100%);
+    padding: 28px 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 4px 24px rgba(79,70,229,0.3);
+  }
+
+  .header-icon {
+    width: 48px; height: 48px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+  }
+
+  header h1 { color: #fff; font-size: 1.6rem; font-weight: 700; }
+  header p { color: rgba(255,255,255,0.75); font-size: 0.9rem; margin-top: 2px; }
+
+  .header-badge {
+    margin-left: auto;
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  /* MAIN LAYOUT */
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 36px 24px;
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+
+  /* FORM CARD */
+  .form-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 32px;
+    border: 1px solid var(--border);
+    position: sticky;
+    top: 24px;
+  }
+
+  .form-card h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .form-card .subtitle {
+    font-size: 0.83rem;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+  }
+
+  .section-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--primary);
+    margin: 20px 0 10px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .form-group {
+    margin-bottom: 14px;
+  }
+
+  label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.88rem;
+    color: var(--text);
+    background: var(--bg);
+    transition: all 0.2s;
+    outline: none;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--primary);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+  }
+
+  input[type="number"]::-webkit-inner-spin-button { opacity: 0.5; }
+
+  .predict-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+
+  .predict-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(79,70,229,0.4);
+  }
+
+  .predict-btn:active { transform: translateY(0); }
+
+  .predict-btn .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* RIGHT PANEL */
+  .right-panel { display: flex; flex-direction: column; gap: 24px; }
+
+  /* WELCOME STATE */
+  .welcome-state {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    padding: 56px 32px;
+    text-align: center;
+  }
+
+  .welcome-state .big-icon {
+    font-size: 56px;
+    margin-bottom: 16px;
+  }
+
+  .welcome-state h3 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .welcome-state p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    max-width: 320px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 28px;
+  }
+
+  .stat-pill {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+  }
+
+  .stat-pill .val { font-size: 1.4rem; font-weight: 800; color: var(--primary); }
+  .stat-pill .lbl { font-size: 0.73rem; color: var(--text-muted); margin-top: 2px; }
+
+  /* RESULT CARD */
+  .result-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    padding: 28px 32px;
+    display: none;
+  }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .result-icon {
+    width: 56px; height: 56px;
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    flex-shrink: 0;
+  }
+
+  .result-icon.placed { background: #d1fae5; }
+  .result-icon.not-placed { background: #fee2e2; }
+
+  .result-title { font-size: 1.4rem; font-weight: 800; }
+  .result-title.placed { color: var(--success); }
+  .result-title.not-placed { color: var(--danger); }
+  .result-sub { font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; }
+
+  /* PROBABILITY METER */
+  .prob-section {
+    margin-bottom: 20px;
+  }
+
+  .prob-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  .prob-value { font-size: 1.6rem; font-weight: 800; }
+  .prob-value.high { color: var(--success); }
+  .prob-value.mid { color: var(--warning); }
+  .prob-value.low { color: var(--danger); }
+
+  .prob-bar {
+    height: 10px;
+    background: var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .prob-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 1s cubic-bezier(.4,0,.2,1);
+  }
+
+  .prob-fill.high { background: linear-gradient(90deg, #10b981, #34d399); }
+  .prob-fill.mid { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+  .prob-fill.low { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+  /* CHARTS GRID */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    display: none;
+  }
+
+  .chart-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    padding: 22px 24px;
+  }
+
+  .chart-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+  }
+
+  .chart-container { position: relative; height: 200px; }
+
+  /* TIPS CARD */
+  .tips-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    padding: 24px 28px;
+    display: none;
+  }
+
+  .tips-card h3 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .tip-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  .tip-item.warn { background: #fffbeb; color: #92400e; }
+  .tip-item.good { background: #ecfdf5; color: #065f46; }
+  .tip-item .tip-dot { flex-shrink: 0; margin-top: 3px; }
+
+  /* SCORE TABLE */
+  .score-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  .score-table th {
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .score-table td {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .score-table tr:last-child td { border-bottom: none; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .badge.above { background: #d1fae5; color: #065f46; }
+  .badge.below { background: #fee2e2; color: #991b1b; }
+
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    .form-card { position: static; }
+    .charts-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-icon">🎓</div>
+  <div>
+    <h1>Campus Placement Predictor</h1>
+    <p>ML-powered placement likelihood analysis</p>
+  </div>
+  <div class="header-badge">88.4% Accurate</div>
+</header>
+
+<main>
+  <!-- FORM -->
+  <div class="form-card">
+    <h2>Enter Your Academic Profile</h2>
+    <p class="subtitle">Fill in your details to get an instant placement prediction</p>
+
+    <div class="section-label">Personal</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Gender</label>
+        <select id="gender">
+          <option value="M">Male</option>
+          <option value="F">Female</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Work Experience</label>
+        <select id="workex">
+          <option value="No">No</option>
+          <option value="Yes">Yes</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-label">Secondary Education</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>SSC % (10th)</label>
+        <input type="number" id="ssc_p" min="0" max="100" step="0.01" placeholder="e.g. 75.5">
+      </div>
+      <div class="form-group">
+        <label>SSC Board</label>
+        <select id="ssc_b">
+          <option value="Central">Central</option>
+          <option value="Others">Others</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-label">Higher Secondary</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>HSC % (12th)</label>
+        <input type="number" id="hsc_p" min="0" max="100" step="0.01" placeholder="e.g. 80.0">
+      </div>
+      <div class="form-group">
+        <label>HSC Board</label>
+        <select id="hsc_b">
+          <option value="Central">Central</option>
+          <option value="Others">Others</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>HSC Stream</label>
+      <select id="hsc_s">
+        <option value="Commerce">Commerce</option>
+        <option value="Science">Science</option>
+        <option value="Arts">Arts</option>
+      </select>
+    </div>
+
+    <div class="section-label">Undergraduate Degree</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Degree %</label>
+        <input type="number" id="degree_p" min="0" max="100" step="0.01" placeholder="e.g. 68.0">
+      </div>
+      <div class="form-group">
+        <label>Degree Type</label>
+        <select id="degree_t">
+          <option value="Sci&Tech">Sci & Tech</option>
+          <option value="Comm&Mgmt">Commerce & Mgmt</option>
+          <option value="Others">Others</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-label">MBA</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>MBA %</label>
+        <input type="number" id="mba_p" min="0" max="100" step="0.01" placeholder="e.g. 62.0">
+      </div>
+      <div class="form-group">
+        <label>Specialisation</label>
+        <select id="specialisation">
+          <option value="Mkt&HR">Mkt & HR</option>
+          <option value="Mkt&Fin">Mkt & Finance</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Employability Test %</label>
+      <input type="number" id="etest_p" min="0" max="100" step="0.01" placeholder="e.g. 70.0">
+    </div>
+
+    <button class="predict-btn" onclick="predict()">
+      <span class="btn-text">🔮 Predict Placement</span>
+      <span class="spinner" id="spinner"></span>
+    </button>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+
+    <!-- WELCOME STATE -->
+    <div class="welcome-state" id="welcome">
+      <div class="big-icon">📊</div>
+      <h3>Ready to Predict Your Future</h3>
+      <p>Fill in your academic details on the left and click Predict to see your placement probability with a full analysis dashboard.</p>
+      <div class="stats-row">
+        <div class="stat-pill">
+          <div class="val">215</div>
+          <div class="lbl">Students in dataset</div>
+        </div>
+        <div class="stat-pill">
+          <div class="val">68.8%</div>
+          <div class="lbl">Placement rate</div>
+        </div>
+        <div class="stat-pill">
+          <div class="val">88.4%</div>
+          <div class="lbl">Model accuracy</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULT CARD -->
+    <div class="result-card" id="resultCard">
+      <div class="result-header">
+        <div class="result-icon" id="resultIcon">🎉</div>
+        <div>
+          <div class="result-title" id="resultTitle">Likely to be Placed!</div>
+          <div class="result-sub" id="resultSub">Based on your academic profile</div>
+        </div>
+      </div>
+
+      <div class="prob-section">
+        <div class="prob-label">
+          <span>Placement Probability</span>
+          <span class="prob-value" id="probValue">72%</span>
+        </div>
+        <div class="prob-bar">
+          <div class="prob-fill" id="probFill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <table class="score-table">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Your Score</th>
+            <th>Placed Avg</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="scoreTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="charts-grid" id="chartsGrid">
+      <div class="chart-card">
+        <div class="chart-title">📈 Score Comparison</div>
+        <div class="chart-container">
+          <canvas id="barChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">🕸 Radar Profile</div>
+        <div class="chart-container">
+          <canvas id="radarChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIPS -->
+    <div class="tips-card" id="tipsCard">
+      <h3>💡 Personalised Insights</h3>
+      <div id="tipsList"></div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+let barChart, radarChart;
+
+async function predict() {
+  // Validate
+  const fields = ['ssc_p','hsc_p','degree_p','etest_p','mba_p'];
+  for (let f of fields) {
+    const v = parseFloat(document.getElementById(f).value);
+    if (isNaN(v) || v < 0 || v > 100) {
+      alert(`Please enter a valid ${f.replace('_p', ' ').replace('_', ' ')} between 0 and 100.`);
+      return;
+    }
+  }
+
+  // Loading state
+  document.querySelector('.btn-text').style.display = 'none';
+  document.getElementById('spinner').style.display = 'block';
+
+  const payload = {
+    gender: document.getElementById('gender').value,
+    ssc_p: document.getElementById('ssc_p').value,
+    ssc_b: document.getElementById('ssc_b').value,
+    hsc_p: document.getElementById('hsc_p').value,
+    hsc_b: document.getElementById('hsc_b').value,
+    hsc_s: document.getElementById('hsc_s').value,
+    degree_p: document.getElementById('degree_p').value,
+    degree_t: document.getElementById('degree_t').value,
+    workex: document.getElementById('workex').value,
+    etest_p: document.getElementById('etest_p').value,
+    specialisation: document.getElementById('specialisation').value,
+    mba_p: document.getElementById('mba_p').value,
+  };
+
+  try {
+    const res = await fetch('/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if (data.error) { alert('Error: ' + data.error); return; }
+
+    showResults(data);
+  } catch(e) {
+    alert('Connection error. Make sure the Flask server is running.');
+  } finally {
+    document.querySelector('.btn-text').style.display = 'inline';
+    document.getElementById('spinner').style.display = 'none';
+  }
+}
+
+function showResults(data) {
+  // Hide welcome, show panels
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('resultCard').style.display = 'block';
+  document.getElementById('chartsGrid').style.display = 'grid';
+  document.getElementById('tipsCard').style.display = 'block';
+
+  const prob = data.probability;
+  const placed = data.placed;
+
+  // Result header
+  const icon = document.getElementById('resultIcon');
+  const title = document.getElementById('resultTitle');
+  const sub = document.getElementById('resultSub');
+
+  if (placed) {
+    icon.textContent = '🎉';
+    icon.className = 'result-icon placed';
+    title.textContent = 'Likely to be Placed!';
+    title.className = 'result-title placed';
+    sub.textContent = `${prob}% placement probability — strong profile!`;
+  } else {
+    icon.textContent = '📚';
+    icon.className = 'result-icon not-placed';
+    title.textContent = 'Needs Improvement';
+    title.className = 'result-title not-placed';
+    sub.textContent = `${prob}% placement probability — check insights below.`;
+  }
+
+  // Probability bar
+  const probClass = prob >= 70 ? 'high' : prob >= 45 ? 'mid' : 'low';
+  const pv = document.getElementById('probValue');
+  pv.textContent = prob + '%';
+  pv.className = 'prob-value ' + probClass;
+  const fill = document.getElementById('probFill');
+  fill.className = 'prob-fill ' + probClass;
+  setTimeout(() => { fill.style.width = prob + '%'; }, 50);
+
+  // Score table
+  const labels = { ssc_p: 'SSC (10th)', hsc_p: 'HSC (12th)', degree_p: 'Degree', etest_p: 'Employability Test', mba_p: 'MBA' };
+  let tbody = '';
+  for (let key in labels) {
+    const userVal = data.user_scores[key].toFixed(1);
+    const avgVal = data.placed_avg[key].toFixed(1);
+    const above = parseFloat(userVal) >= parseFloat(avgVal);
+    tbody += `<tr>
+      <td>${labels[key]}</td>
+      <td><strong>${userVal}%</strong></td>
+      <td>${avgVal}%</td>
+      <td><span class="badge ${above ? 'above' : 'below'}">${above ? '▲ Above' : '▼ Below'}</span></td>
+    </tr>`;
+  }
+  document.getElementById('scoreTableBody').innerHTML = tbody;
+
+  // Charts
+  buildBarChart(data);
+  buildRadarChart(data);
+
+  // Tips
+  const tl = document.getElementById('tipsList');
+  const isGood = data.tips[0].startsWith('Your profile is strong');
+  tl.innerHTML = data.tips.map(t =>
+    `<div class="tip-item ${isGood ? 'good' : 'warn'}">
+       <span class="tip-dot">${isGood ? '✅' : '⚠️'}</span>
+       <span>${t}</span>
+     </div>`
+  ).join('');
+}
+
+function buildBarChart(data) {
+  if (barChart) barChart.destroy();
+  const labels = ['SSC', 'HSC', 'Degree', 'E-Test', 'MBA'];
+  const userVals = ['ssc_p','hsc_p','degree_p','etest_p','mba_p'].map(k => data.user_scores[k]);
+  const avgVals = ['ssc_p','hsc_p','degree_p','etest_p','mba_p'].map(k => data.placed_avg[k]);
+
+  barChart = new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Your Score', data: userVals, backgroundColor: 'rgba(79,70,229,0.8)', borderRadius: 6, borderSkipped: false },
+        { label: 'Placed Avg', data: avgVals, backgroundColor: 'rgba(16,185,129,0.6)', borderRadius: 6, borderSkipped: false }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { size: 11 } } } },
+      scales: {
+        y: { min: 40, max: 100, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } },
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+function buildRadarChart(data) {
+  if (radarChart) radarChart.destroy();
+  const labels = ['SSC', 'HSC', 'Degree', 'E-Test', 'MBA'];
+  const userVals = ['ssc_p','hsc_p','degree_p','etest_p','mba_p'].map(k => data.user_scores[k]);
+  const avgVals = ['ssc_p','hsc_p','degree_p','etest_p','mba_p'].map(k => data.placed_avg[k]);
+
+  radarChart = new Chart(document.getElementById('radarChart'), {
+    type: 'radar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'You', data: userVals,
+          backgroundColor: 'rgba(79,70,229,0.15)',
+          borderColor: '#4f46e5', borderWidth: 2,
+          pointBackgroundColor: '#4f46e5', pointRadius: 4
+        },
+        {
+          label: 'Placed Avg', data: avgVals,
+          backgroundColor: 'rgba(16,185,129,0.1)',
+          borderColor: '#10b981', borderWidth: 2,
+          pointBackgroundColor: '#10b981', pointRadius: 4
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { size: 11 } } } },
+      scales: {
+        r: {
+          min: 40, max: 100,
+          ticks: { stepSize: 20, font: { size: 9 }, backdropColor: 'transparent' },
+          grid: { color: '#e2e8f0' },
+          angleLines: { color: '#e2e8f0' },
+          pointLabels: { font: { size: 11, weight: '600' } }
+        }
+      }
+    }
+  });
+}
+</script>
+</body>
+</html>
